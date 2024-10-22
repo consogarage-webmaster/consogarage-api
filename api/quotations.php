@@ -34,23 +34,25 @@ try {
     foreach ($quotations as $quotation) {
         $quotationData = [
             'quotation' => [
-
                 'id' => $quotation['id_roja45_quotation'],
                 'reference' => $quotation['reference'],
                 'status' => $quotation['id_roja45_quotation_status']
             ],
             'customer' => [
                 'firstname' => $quotation['customer_firstname'],
-                'lastname' => $quotation['customer_lastname']
+                'lastname' => $quotation['customer_lastname'],
+                'group' => $quotation['customer_group']
             ],
-            'products' => []
+            'products' => [] // Initialize products array
         ];
 
-        // Add product details
-        $quotationData['products'][] = [
-            'product_name' => $quotation['products']['product_name'],
-            'product_quantity' => $quotation['products']['product_quantity']
-        ];
+        // Add each product for the current quotation
+        foreach ($quotation['products'] as $product) {
+            $quotationData['products'][] = [
+                'product_name' => $product['product_name'],
+                'product_quantity' => $product['product_quantity']
+            ];
+        }
 
         $data[] = $quotationData;
     }

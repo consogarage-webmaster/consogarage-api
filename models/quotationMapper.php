@@ -160,21 +160,20 @@ class QuotationMapper
     }
     public function findAllAPI($customerGroups = [], $statuses = [])
     {
-        // Prepare the base query with joins to fetch all necessary details
+        // Step 1: Prepare the base query to fetch quotations and customer details
         $query = "
-        SELECT 
-            q.*, 
-            c.firstname AS customer_firstname, 
-            c.lastname AS customer_lastname, 
-            qp.product_title, 
-            qp.qty 
-        FROM 
-            ps_roja45_quotationspro q
-        JOIN 
-            ps_customer c ON q.id_customer = c.id_customer
-        JOIN 
-            ps_roja45_quotationspro_product qp ON q.id_roja45_quotation = qp.id_roja45_quotation
-        WHERE 1=1";
+    SELECT 
+        q.id_roja45_quotation, 
+        q.id_roja45_quotation_status, 
+        q.reference,
+        c.firstname AS customer_firstname, 
+        c.lastname AS customer_lastname, 
+        c.id_default_group AS customer_group
+    FROM 
+        ps_roja45_quotationspro q
+    JOIN 
+        ps_customer c ON q.id_customer = c.id_customer
+    WHERE 1=1";
 
         $params = [];
         $types = '';
@@ -202,34 +201,64 @@ class QuotationMapper
             die("Error preparing statement: " . $this->db->error);
         }
 
-        // Only bind parameters if there are any
+        // Bind parameters dynamically if present
         if (!empty($params)) {
             $stmt->bind_param($types, ...$params);
         }
 
-        // Execute the query
+        // Execute the query and fetch quotations
         $stmt->execute();
         $result = $stmt->get_result();
 
         $quotations = [];
         while ($row = $result->fetch_assoc()) {
-            // Gather all necessary data into an associative array
-            $quotations[] = [
+            // Store quotation information without products initially
+            $quotations[$row['id_roja45_quotation']] = [
                 'id_roja45_quotation' => $row['id_roja45_quotation'],
                 'id_roja45_quotation_status' => $row['id_roja45_quotation_status'],
                 'reference' => $row['reference'],
-
                 'customer_firstname' => $row['customer_firstname'],
                 'customer_lastname' => $row['customer_lastname'],
-                'products' => [
-                    'product_name' => $row['product_title'],
-                    'product_quantity' => $row['qty']
-                ]
+                'customer_group' => $row['customer_group'],
+                'products' => []  // Products will be added in Step 2
             ];
         }
 
-        return $quotations;
+        // Step 2: Fetch the products for each quotation
+        if (!empty($quotations)) {
+            $quotationIds = implode(',', array_keys($quotations));  // Get quotation IDs for which to fetch products
+
+            $query = "
+        SELECT 
+            qp.id_roja45_quotation, 
+            qp.product_title, 
+            qp.qty 
+        FROM 
+            ps_roja45_quotationspro_product qp
+        WHERE qp.id_roja45_quotation IN ($quotationIds)";
+
+            $stmt = $this->db->prepare($query);
+
+            if (!$stmt) {
+                die("Error preparing statement: " . $this->db->error);
+            }
+
+            // Execute the product query
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            // Add each product to its respective quotation
+            while ($row = $result->fetch_assoc()) {
+                $quotations[$row['id_roja45_quotation']]['products'][] = [
+                    'product_name' => $row['product_title'],
+                    'product_quantity' => $row['qty']
+                ];
+            }
+        }
+
+        return array_values($quotations);  // Return quotations as an indexed array
     }
+
 
     // Method to create a new Quotation
     public function create(Quotation $quotation)

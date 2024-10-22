@@ -33,8 +33,12 @@ try {
     // Loop through each quotation and add the necessary details
     foreach ($quotations as $quotation) {
         $quotationData = [
-            'id' => $quotation['id_roja45_quotation'],
-            'status' => $quotation['id_roja45_quotation_status'],
+            'quotation' => [
+
+                'id' => $quotation['id_roja45_quotation'],
+                'reference' => $quotation['reference'],
+                'status' => $quotation['id_roja45_quotation_status']
+            ],
             'customer' => [
                 'firstname' => $quotation['customer_firstname'],
                 'lastname' => $quotation['customer_lastname']

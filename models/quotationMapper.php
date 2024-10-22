@@ -217,6 +217,8 @@ class QuotationMapper
             $quotations[] = [
                 'id_roja45_quotation' => $row['id_roja45_quotation'],
                 'id_roja45_quotation_status' => $row['id_roja45_quotation_status'],
+                'reference' => $row['reference'],
+
                 'customer_firstname' => $row['customer_firstname'],
                 'customer_lastname' => $row['customer_lastname'],
                 'products' => [
